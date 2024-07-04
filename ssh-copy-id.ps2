@@ -1,0 +1,24 @@
+# Ensure the SSH key exists
+$sshKeyPath = "$env:USERPROFILE\.ssh\id_rsa.pub"
+if (-Not (Test-Path -Path $sshKeyPath)) {
+    Write-Host "Public SSH key not found. Please ensure you have generated an SSH key."
+    exit
+}
+$sshKey = Get-Content -Path $sshKeyPath -Raw
+
+# Prompt for the remote machine's username and IP address in the format username@10.10.10.10
+$userAtIp = Read-Host "Enter username and IP of remote Linux (username@10.10.10.10)"
+
+# Create the command to append the SSH key to the remote authorized_keys
+$remoteCommand = "echo `$sshKey` >> ~/.ssh/authorized_keys"
+
+# Execute the command using ssh
+try {
+    $escapedCommand = $remoteCommand -replace '"', '\"' -replace '\$', '`$'
+    $sshCommand = "ssh $userAtIp `"$escapedCommand`""
+    Invoke-Expression $sshCommand
+    Write-Host "SSH key successfully copied to $userAtIp"
+} catch {
+    Write-Host "An error occurred while copying the SSH key."
+    Write-Host $_.Exception.Message
+}
